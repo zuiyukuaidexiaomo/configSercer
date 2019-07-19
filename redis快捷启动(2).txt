@@ -1,0 +1,69 @@
+ 1.脚本路径 /etc/init.d/redis
+
+    首先执行: vi /etc/init.d/redis
+
+    修改后copy到编辑框中， esc 退出编辑，:wq 保存退出
+2. Shell脚本代码
+#!/bin/sh  
+#chkconfig: 2345 80 90  
+# Simple Redis init.d script conceived to work on Linux systems  
+# as it does use of the /proc filesystem.  
+REDISPORT=6379  
+REDISPATH=/home/java/run/redis-3.2.9/bin (redis安装路径) 
+EXEC=${REDISPATH}/redis-server  
+CLIEXEC=${REDISPATH}/redis-cli  
+PIDFILE=/var/run/redis_${REDISPORT}.pid  
+CONF="${REDISPATH}/redis.conf"  
+case "$1" in  
+  start)  
+    if [ -f $PIDFILE ]  
+    then  
+        echo "$PIDFILE exists, process is already running or crashed"  
+    else  
+        echo "Starting Redis server..."  
+        $EXEC $CONF  
+    fi  
+    ;;  
+  stop)  
+    if [ ! -f $PIDFILE ]  
+    then  
+        echo "$PIDFILE does not exist, process is not running"  
+    else  
+        PID=$(cat $PIDFILE)  
+        echo "Stopping ..."  
+        $CLIEXEC -p $REDISPORT shutdown  
+        while [ -x /proc/${PID} ]  
+        do  
+          echo "Waiting for Redis to shutdown ..."  
+          sleep 1  
+        done  
+        echo "Redis stopped"  
+    fi  
+    ;;  
+  *)  
+    echo "Please use start or stop as first argument"  
+    ;;  
+esac  
+3.更改redis脚本为可执行文件
+chmod +x /etc/init.d/redis
+4.为了在任意路径都可执行此脚本，需要添加到/usr/bin目录中
+ cd /usr/bin  
+ ln -s /etc/init.d/redis 
+
+5,设置开机自启
+
+chkconfig redis-auto on  (数据可能会丢失 )
+
+6.配置开机自启
+
+chkconfig redis-auto on  
+
+数据丢失解决方案
+
+ vi /etc/sysctl.conf 
+
+在最后一行添加
+vm.overcommit_memory = 1  
+执行sysctl
+
+sysctl -p
